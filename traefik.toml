@@ -1,0 +1,43 @@
+checkNewVersion = false
+defaultEntryPoints = ["http", "https"]
+
+[entryPoints]
+  [entryPoints.http]
+  address = ":80"
+  compress = true
+  [entryPoints.http.redirect]
+    entryPoint = "https"
+  [entryPoints.https]
+    address = ":443"
+    compress = true
+    [entryPoints.https.tls]
+      minVersion = "VersionTLS12"
+      [[entryPoints.https.tls.certificates]]
+        certFile = "/certs/nextcloud.crt"
+        keyFile = "/certs/nextcloud.key"
+
+  [entryPoints.api]
+    address = ":8083"
+
+[api]
+entryPoint = "api"
+
+[file]
+# Backends
+[backends]
+  [backends.nextcloud]
+  [backends.nextcloud.servers]
+  [backends.nextcloud.servers.server0]
+    url = "http://nextcloud"
+
+[frontends]
+  [frontends.nextcloud]
+    entryPoints = ["http", "https"]
+    backend = "nextcloud"
+    passHostHeader = true
+
+# Metrics definition
+[metrics]
+  # To enable Traefik to export internal metrics to Prometheus
+  [metrics.prometheus]
+  entryPoint = "api"

@@ -1,0 +1,41 @@
+version: "3"
+services:
+  mariadb:
+    image: mariadb:${MARIADB_VERSION}
+    restart: always
+    command:
+    - --transaction-isolation=READ-COMMITTED
+    - --binlog-format=ROW
+    - --log-bin=mysqld-bin
+    volumes:
+    - ./data/mysql:/var/lib/mysql
+    environment:
+    - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    - MYSQL_DATABASE=nextcloud
+    - MYSQL_USER=nextcloud
+  nextcloud:
+    image: nextcloud:${NEXTCLOUD_VERSION}
+    restart: always
+    volumes:
+    - ./data/nextcloud:/var/www/html
+    environment:
+    - MYSQL_HOST=mariadb:3306
+    - MYSQL_DATABASE=nextcloud
+    - MYSQL_USER=nextcloud
+    - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    - NEXTCLOUD_ADMIN_USER=admin
+    - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
+  traefik:
+    image: traefik:v${TRAEFIK_VERSION}-alpine
+    restart: always
+    ports:
+    - 80:80
+    - 443:443
+    - 8083:8083
+    volumes:
+    - ./certs:/certs
+    - ./traefik.toml:/traefik.toml
+    command:
+    - -c
+    - /traefik.toml
