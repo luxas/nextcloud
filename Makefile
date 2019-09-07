@@ -1,30 +1,40 @@
-export NEXTCLOUD_VERSION=15.0.4
-export MARIADB_VERSION=10.4.2
-export TRAEFIK_VERSION=1.7.9
-export MYSQL_PASSWORD=$(shell cat data/passwords/mysql_user 2>/dev/null || cat /dev/urandom | tr -cd 'a-z0-9' | head -c 32)
-export MYSQL_ROOT_PASSWORD=$(shell cat data/passwords/mysql_root 2>/dev/null || cat /dev/urandom | tr -cd 'a-z0-9' | head -c 32)
-export NEXTCLOUD_ADMIN_PASSWORD=$(shell cat data/passwords/nextcloud_admin 2>/dev/null || cat /dev/urandom | tr -cd 'a-z0-9' | head -c 32)
-export DOMAIN=
+export NEXTCLOUD_VERSION=16.0.4
+export MARIADB_VERSION=10.4.7
+export TRAEFIK_VERSION=1.7.14
+IP_ADDRESS:=$(shell ip route | grep "$(shell ip route show default | awk '{print $$5}')" | grep src | awk '{print $$9}')
+DOMAIN?=$(shell cat DOMAIN)
+export IP_ADDRESS
+export DOMAIN
 SHELL:=/bin/bash
 
 ifeq ($(DOMAIN),)
-$(error DOMAIN is a required value)
+$(error DOMAIN is a required value, please populate the DOMAIN file)
 endif
 
-all: data/
-data/: up
-up: /usr/local/bin/docker-compose certs/${DOMAIN}.crt
-	mkdir -p data/passwords
+all: up
+up: /usr/local/bin/docker-compose secret/nextcloud.crt secret/passwords/mysql_user secret/passwords/mysql_root secret/passwords/nextcloud_admin
+	[[ $$(mount | grep $$(pwd)/data ]] && exit 0 || (echo "You need to mount the $(pwd)/data folder" && exit 1)
+	@MYSQL_PASSWORD=$(shell cat secret/passwords/mysql_user) \
+	MYSQL_ROOT_PASSWORD=$(shell cat secret/passwords/mysql_user) \
+	NEXTCLOUD_ADMIN_PASSWORD=$(shell cat secret/passwords/nextcloud_admin) \
 	docker-compose up -d
-	@if [[ ! -f data/passwords/mysql_user ]]; then echo ${MYSQL_PASSWORD} > data/passwords/mysql_user; fi
-	@if [[ ! -f data/passwords/mysql_root ]]; then echo ${MYSQL_ROOT_PASSWORD} > data/passwords/mysql_root; fi
-	@if [[ ! -f data/passwords/nextcloud_admin ]]; then echo ${NEXTCLOUD_ADMIN_PASSWORD} > data/passwords/nextcloud_admin; fi
+#	$(MAKE) postinstall
 
-	# Post-install
-	# occ db:convert-filecache-bigint
-	# occ config:system:set trusted_domains 2 --value ${DOMAIN}
+secret/passwords/%:
+	mkdir -p secret
+	if [[ ! -f secret/passwords/$* ]]; then cat /dev/urandom | tr -cd 'a-z0-9' | head -c 32 > secret/passwords/$*; fi
 
-certs/nextcloud.crt:
+# postinstall:
+#	@echo "Waiting to perform postinstall tasks:"
+#	@while [[ $$(docker exec -it -u www-data nextcloud_nextcloud_1 ./occ db:convert-filecache-bigint --no-interaction >/dev/null 2>/dev/null; echo $$?) != 0 ]]; do sleep 1; done
+
+down logs config:
+	docker-compose $@
+
+exec:
+	docker-compose exec -u www-data nextcloud /bin/bash
+
+self-signed-cert:
 	mkdir -p certs
 	# TODO: Use Let's Encrypt instead.
 	openssl req -x509 -nodes -subj '/CN=${DOMAIN}' -newkey rsa:2048 -keyout certs/nextcloud.key -out certs/nextcloud.crt -days 365

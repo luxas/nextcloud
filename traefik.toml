@@ -35,6 +35,10 @@ entryPoint = "api"
     entryPoints = ["http", "https"]
     backend = "nextcloud"
     passHostHeader = true
+    [frontends.nextcloud.headers.customresponseheaders]
+    Strict-Transport-Security = "15552000"
+    [frontends.nextcloud.whiteList]
+      useXForwardedFor = true
 
 # Metrics definition
 [metrics]
