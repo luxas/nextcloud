@@ -37,3 +37,14 @@ services:
     command:
     - -c
     - /traefik.toml
+  collabora:
+    # TODO: Expose this through the Traefik reverse proxy
+    image: collabora/code:${COLLABORA_VERSION}
+    ports:
+    - 9980:9980
+    environment:
+    - domain=${REGEXP_DOMAIN}
+    - dictionaries=en
+    cap_add:
+    - MKNOD
+    tty: true

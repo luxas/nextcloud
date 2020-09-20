@@ -1,14 +1,20 @@
-export NEXTCLOUD_VERSION=16.0.4
-export MARIADB_VERSION=10.4.7
-export TRAEFIK_VERSION=1.7.14
+export NEXTCLOUD_VERSION=19.0.3
+export COLLABORA_VERSION=4.2.6.2
+export MARIADB_VERSION=10.5.5
+export TRAEFIK_VERSION=1.7.26
 IP_ADDRESS:=$(shell ip route | grep "$(shell ip route show default | awk '{print $$5}')" | grep src | awk '{print $$9}')
 DOMAIN?=$(shell cat DOMAIN)
+REGEXP_DOMAIN?=$(shell cat REGEXP_DOMAIN)
 export IP_ADDRESS
 export DOMAIN
+export REGEXP_DOMAIN
 SHELL:=/bin/bash
 
 ifeq ($(DOMAIN),)
 $(error DOMAIN is a required value, please populate the DOMAIN file)
+endif
+ifeq ($(REGEXP_DOMAIN),)
+$(error REGEXP_DOMAIN is a required value, please populate the REGEXP_DOMAIN file)
 endif
 
 all: up
@@ -24,8 +30,13 @@ secret/passwords/%:
 	if [[ ! -f secret/passwords/$* ]]; then cat /dev/urandom | tr -cd 'a-z0-9' | head -c 32 > secret/passwords/$*; fi
 
 postinstall:
-	@echo "Waiting to perform postinstall tasks:"
-	@while [[ $$(docker exec -it -u www-data nextcloud_nextcloud_1 ./occ db:convert-filecache-bigint --no-interaction >/dev/null 2>/dev/null; echo $$?) != 0 ]]; do sleep 1; done
+	@echo "Performing postinstall tasks:"
+	$(MAKE) occ-db:convert-filecache-bigint
+	$(MAKE) occ-db:add-missing-indices
+	$(MAKE) occ-db:add-missing-columns
+
+occ-%:
+	while [[ $$(docker exec -it -u www-data nextcloud_nextcloud_1 ./occ $* --no-interaction >/dev/null 2>/dev/null; echo $$?) != 0 ]]; do sleep 1; done
 
 logs:
 	docker-compose logs -f
