@@ -2,7 +2,6 @@ version: "3"
 services:
   mariadb:
     image: mariadb:${MARIADB_VERSION}
-    restart: always
     command:
     - --transaction-isolation=READ-COMMITTED
     - --binlog-format=ROW
@@ -16,7 +15,6 @@ services:
     - MYSQL_USER=nextcloud
   nextcloud:
     image: nextcloud:${NEXTCLOUD_VERSION}
-    restart: always
     volumes:
     - ./data/nextcloud:/var/www/html
     environment:
@@ -29,13 +27,12 @@ services:
     - NEXTCLOUD_TRUSTED_DOMAINS=localhost nextcloud ${DOMAIN} ${IP_ADDRESS}
   traefik:
     image: traefik:v${TRAEFIK_VERSION}-alpine
-    restart: always
     ports:
     - 80:80
     - 443:443
     - 8083:8083
     volumes:
-    - ./certs:/certs
+    - ./secret:/secret
     - ./traefik.toml:/traefik.toml
     command:
     - -c

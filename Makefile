@@ -13,22 +13,24 @@ endif
 
 all: up
 up: /usr/local/bin/docker-compose secret/nextcloud.crt secret/passwords/mysql_user secret/passwords/mysql_root secret/passwords/nextcloud_admin
-	[[ $$(mount | grep $$(pwd)/data ]] && exit 0 || (echo "You need to mount the $(pwd)/data folder" && exit 1)
+	[[ $$(mount | grep $$(pwd)/data) ]] && exit 0 || (echo "You need to mount the $(pwd)/data folder" && exit 1)
 	@MYSQL_PASSWORD=$(shell cat secret/passwords/mysql_user) \
 	MYSQL_ROOT_PASSWORD=$(shell cat secret/passwords/mysql_user) \
 	NEXTCLOUD_ADMIN_PASSWORD=$(shell cat secret/passwords/nextcloud_admin) \
 	docker-compose up -d
-#	$(MAKE) postinstall
 
 secret/passwords/%:
 	mkdir -p secret
 	if [[ ! -f secret/passwords/$* ]]; then cat /dev/urandom | tr -cd 'a-z0-9' | head -c 32 > secret/passwords/$*; fi
 
-# postinstall:
-#	@echo "Waiting to perform postinstall tasks:"
-#	@while [[ $$(docker exec -it -u www-data nextcloud_nextcloud_1 ./occ db:convert-filecache-bigint --no-interaction >/dev/null 2>/dev/null; echo $$?) != 0 ]]; do sleep 1; done
+postinstall:
+	@echo "Waiting to perform postinstall tasks:"
+	@while [[ $$(docker exec -it -u www-data nextcloud_nextcloud_1 ./occ db:convert-filecache-bigint --no-interaction >/dev/null 2>/dev/null; echo $$?) != 0 ]]; do sleep 1; done
 
-down logs config:
+logs:
+	docker-compose logs -f
+
+down config:
 	docker-compose $@
 
 exec:

@@ -13,8 +13,8 @@ defaultEntryPoints = ["http", "https"]
     [entryPoints.https.tls]
       minVersion = "VersionTLS12"
       [[entryPoints.https.tls.certificates]]
-        certFile = "/certs/nextcloud.crt"
-        keyFile = "/certs/nextcloud.key"
+        certFile = "/secret/nextcloud.crt"
+        keyFile = "/secret/nextcloud.key"
 
   [entryPoints.api]
     address = ":8083"
